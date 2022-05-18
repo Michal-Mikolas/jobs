@@ -1,10 +1,58 @@
-class JobsFileCache():
+
+
+ #####
+#     #   ##    ####  #    # ######
+#        #  #  #    # #    # #
+#       #    # #      ###### #####
+#       ###### #      #    # #
+#     # #    # #    # #    # #
+ #####  #    #  ####  #    # ######
+
+class ICache():
+    def save(self, key:str, value):
+        raise NotImplementedError
+
+    def load(self, key:str):
+        raise NotImplementedError
+
+
+class NoneCache(ICache):
+    def save(self, key:str, value):
+        pass
+
+    def load(self, key:str):
+        return None
+
+
+class JobsFileCache(ICache):
     def __init__(self, file_path):
         self.file_path = file_path
 
 
+    def save(self, key:str, value):
+        import shelve
+
+        with shelve.open(self.file_path) as f:
+            f[key] = value
+
+
+    def load(self, key:str):
+        import shelve
+
+        with shelve.open(self.file_path) as f:
+            return f[key]
+
+
+      #
+      #  ####  #####   ####
+      # #    # #    # #
+      # #    # #####   ####
+#     # #    # #    #      #
+#     # #    # #    # #    #
+ #####   ####  #####   ####
+
 class Jobs():
-    def __init__(self, cache):
+    def __init__(self, cache:ICache):
         self.cache = cache
         self.jobs = {}
 
@@ -31,45 +79,3 @@ class Jobs():
         return []
 
 
-
-
-if __file__ == '__main__':
-    def simple_job(a, b, c):
-        pass
-
-
-    from datetime import time
-
-    jobs = Jobs(cache=JobsFileCache('temp/jobs.json'))
-
-    jobs.define('zz-general',
-        ZZGeneral.run,
-        description='Refreshes [zz_davka|zz_doklad].[_insurance|_icz]',
-    )
-
-    jobs.define('zz-year',
-        ZZYear.run,
-        args=['Foo', jobs.result('zz_general')],  # or kwargs={'foo': 'Foo', 'general': jobs.result('zz_general')}
-        description='Refreshes [zz|zz_davka|zz_doklad]._year',
-        depends_on=['zz-general', 'faktura-year'],
-    )
-
-    jobs.define('medibot',
-        Medibot.run,
-        description='Runs Medibot instance',
-        repeat=-1,  # -1 means forever
-        on_success=lambda: (print('Waiting 10 seconds...'), time.sleep(10)),
-    )
-
-    jobs.define('zz-all',
-        None,
-        depends_on=['zz-general', 'zz-year', 'zz-opravitelne'],
-    )
-
-    jobs.run_by_args()
-
-
-    import pytest
-
-    def test_get_steps():
-        assert False
